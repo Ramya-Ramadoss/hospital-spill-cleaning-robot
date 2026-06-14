@@ -1,225 +1,787 @@
+
 <?xml version="1.0" ?>
 <sdf version="1.8">
   <world name="hospital_world">
 
-    <model name="floor">
+    <!-- ============================================================ -->
+    <!-- PHYSICS & PLUGINS (required for Gazebo Harmonic gz sim)       -->
+    <!-- ============================================================ -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin
+        filename="gz-sim-physics-system"
+        name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+        filename="gz-sim-user-commands-system"
+        name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+        filename="gz-sim-scene-broadcaster-system"
+        name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+        filename="gz-sim-sensors-system"
+        name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <!-- ============================================================ -->
+    <!-- SCENE (background color and ambient lighting)                -->
+    <!-- ============================================================ -->
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <!-- ============================================================ -->
+    <!-- LIGHTING                                                       -->
+    <!-- ============================================================ -->
+
+    <!-- Main sun (directional light) -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.4 0.2 -0.9</direction>
+      <attenuation>
+        <range>50</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+    </light>
+
+    <!-- Indoor point light - top half of building -->
+    <light type="point" name="indoor_light_top">
+      <pose>0 4 4 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <attenuation>
+        <range>25</range>
+        <constant>0.5</constant>
+        <linear>0.05</linear>
+        <quadratic>0.002</quadratic>
+      </attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+
+    <!-- Indoor point light - bottom half of building -->
+    <light type="point" name="indoor_light_bottom">
+      <pose>0 -4 4 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <attenuation>
+        <range>25</range>
+        <constant>0.5</constant>
+        <linear>0.05</linear>
+        <quadratic>0.002</quadratic>
+      </attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+
+    <!-- ============================================================ -->
+    <!-- FLOOR PLANE (22m x 17m, slightly larger than the building)    -->
+    <!-- ============================================================ -->
+    <model name="hospital_floor">
       <static>true</static>
-      <link name="link">
-        <collision name="collision">
+      <pose>0 0 0 0 0 0</pose>
+      <link name="floor_link">
+        <collision name="floor_collision">
           <geometry>
-            <box>
-              <size>20 20 0.1</size>
-            </box>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>22 17</size>
+            </plane>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="floor_visual">
           <geometry>
-            <box>
-              <size>20 20 0.1</size>
-            </box>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>22 17</size>
+            </plane>
           </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ============================================================ -->
+    <!-- BUILDING LAYOUT OVERVIEW                                       -->
+    <!--                                                                -->
+    <!-- Building footprint: 20m (X) x 15m (Y), centered at origin     -->
+    <!-- X range: -10 to 10 | Y range: -7.5 to 7.5                     -->
+    <!--                                                                -->
+    <!-- Central horizontal corridor: Y = -1 to 1 (2m wide)            -->
+    <!--                                                                -->
+    <!-- TOP ROW (Y: 1 to 7.5)                                          -->
+    <!--   Reception Area : X -10 to -4                                 -->
+    <!--   Waiting Area   : X  -4 to  2                                 -->
+    <!--   Nurse Station  : X   2 to 10                                 -->
+    <!--                                                                -->
+    <!-- BOTTOM ROW (Y: -7.5 to -1)                                     -->
+    <!--   ICU Room       : X -10 to -3                                 -->
+    <!--   Patient Room 1 : X  -3 to 3.5                                -->
+    <!--   Patient Room 2 : X 3.5 to 10                                 -->
+    <!--                                                                -->
+    <!-- All walls: thickness 0.2m, height 2.5m                        -->
+    <!-- ============================================================ -->
+
+
+    <!-- ============================================================ -->
+    <!-- OUTER PERIMETER WALLS                                          -->
+    <!-- ============================================================ -->
+
+    <!-- North outer wall -->
+    <model name="wall_outer_north">
+      <static>true</static>
+      <pose>0 7.5 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>20 0.2 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>20 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- South outer wall -->
+    <model name="wall_outer_south">
+      <static>true</static>
+      <pose>0 -7.5 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>20 0.2 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>20 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- West outer wall -->
+    <model name="wall_outer_west">
+      <static>true</static>
+      <pose>-10 0 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 15 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 15 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- East outer wall -->
+    <model name="wall_outer_east">
+      <static>true</static>
+      <pose>10 0 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 15 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 15 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
       </link>
     </model>
 
 
-    <model name="wall1">
+    <!-- ============================================================ -->
+    <!-- CORRIDOR / TOP-ROOM SEPARATION WALL (Y = 1)                    -->
+    <!-- Gaps left for doorways into Reception, Waiting Area,           -->
+    <!-- and Nurse Station                                             -->
+    <!-- ============================================================ -->
+
+    <!-- Segment in front of Reception Area -->
+    <model name="wall_corridor_top_seg1">
       <static>true</static>
-      <pose>0 5 1.25 0 0 0</pose>
-
+      <pose>-8 1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>4 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>4 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="wall2">
+    <!-- Segment between Reception door and Waiting Area door -->
+    <model name="wall_corridor_top_seg2">
       <static>true</static>
-      <pose>0 -5 1.25 0 0 0</pose>
-
+      <pose>-2.25 1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>4.5 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>4.5 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="wall3">
+    <!-- Segment between Waiting Area door and Nurse Station door -->
+    <model name="wall_corridor_top_seg3">
       <static>true</static>
-      <pose>-5 0 1.25 0 0 0</pose>
-
+      <pose>3.75 1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>0.2 6 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>4.5 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>0.2 6 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>4.5 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="wall4">
+    <!-- Segment after Nurse Station door -->
+    <model name="wall_corridor_top_seg4">
       <static>true</static>
-      <pose>5 0 1.25 0 0 0</pose>
-
+      <pose>8.75 1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>0.2 6 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>2.5 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>0.2 6 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>2.5 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="icu_top">
+
+    <!-- ============================================================ -->
+    <!-- CORRIDOR / BOTTOM-ROOM SEPARATION WALL (Y = -1)                -->
+    <!-- Gaps left for doorways into ICU Room, Patient Room 1,         -->
+    <!-- and Patient Room 2                                            -->
+    <!-- ============================================================ -->
+
+    <!-- Segment in front of ICU Room -->
+    <model name="wall_corridor_bottom_seg1">
       <static>true</static>
-      <pose>-2 2 1.25 0 0 0</pose>
-
+      <pose>-8.5 -1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>3 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>3 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="icu_bottom">
+    <!-- Segment between ICU door and Patient Room 1 door -->
+    <model name="wall_corridor_bottom_seg2">
       <static>true</static>
-      <pose>-2 -2 1.25 0 0 0</pose>
-
+      <pose>-4 -1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>3 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>3 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="patient_top">
+    <!-- Segment between Patient Room 1 door and Patient Room 2 door -->
+    <model name="wall_corridor_bottom_seg3">
       <static>true</static>
-      <pose>2 2 1.25 0 0 0</pose>
-
+      <pose>0.5 -1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>3 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>3 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
-
       </link>
     </model>
 
-    <model name="patient_bottom">
+    <!-- Segment after Patient Room 2 door -->
+    <model name="wall_corridor_bottom_seg4">
       <static>true</static>
-      <pose>2 -2 1.25 0 0 0</pose>
-
+      <pose>6.75 -1 1.25 0 0 0</pose>
       <link name="link">
-
         <collision name="collision">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>6.5 0.2 2.5</size></box></geometry>
         </collision>
-
         <visual name="visual">
-          <geometry>
-            <box>
-              <size>6 0.2 2.5</size>
-            </box>
-          </geometry>
+          <geometry><box><size>6.5 0.2 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
         </visual>
+      </link>
+    </model>
 
+
+    <!-- ============================================================ -->
+    <!-- INTERNAL DIVIDING WALLS - TOP ROW                              -->
+    <!-- Separates Reception | Waiting Area | Nurse Station            -->
+    <!-- ============================================================ -->
+
+    <!-- Wall between Reception Area and Waiting Area -->
+    <model name="wall_divider_reception_waiting">
+      <static>true</static>
+      <pose>-4 4.25 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Wall between Waiting Area and Nurse Station -->
+    <model name="wall_divider_waiting_nurse">
+      <static>true</static>
+      <pose>2 4.25 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================================================ -->
+    <!-- INTERNAL DIVIDING WALLS - BOTTOM ROW                           -->
+    <!-- Separates ICU Room | Patient Room 1 | Patient Room 2          -->
+    <!-- ============================================================ -->
+
+    <!-- Wall between ICU Room and Patient Room 1 -->
+    <model name="wall_divider_icu_patient1">
+      <static>true</static>
+      <pose>-3 -4.25 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Wall between Patient Room 1 and Patient Room 2 -->
+    <model name="wall_divider_patient1_patient2">
+      <static>true</static>
+      <pose>3.5 -4.25 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 6.5 2.5</size></box></geometry>
+          <material>
+            <ambient>0.85 0.85 0.85 1</ambient>
+            <diffuse>0.85 0.85 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================================================ -->
+    <!-- OBSTACLES: HOSPITAL BEDS (4 total)                             -->
+    <!-- Located in ICU Room and Patient Rooms 1 & 2                    -->
+    <!-- Size: 2.0 x 1.0 x 0.5 m                                        -->
+    <!-- ============================================================ -->
+
+    <!-- ICU Room - Bed 1 -->
+    <model name="hospital_bed_icu_1">
+      <static>true</static>
+      <pose>-8.5 -3 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ICU Room - Bed 2 -->
+    <model name="hospital_bed_icu_2">
+      <static>true</static>
+      <pose>-8.5 -6 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Patient Room 1 - Bed -->
+    <model name="hospital_bed_patient_room1">
+      <static>true</static>
+      <pose>0.25 -6 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Patient Room 2 - Bed -->
+    <model name="hospital_bed_patient_room2">
+      <static>true</static>
+      <pose>6.75 -6 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 1.0 0.5</size></box></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================================================ -->
+    <!-- OBSTACLES: CHAIRS (8 total)                                    -->
+    <!-- 6 chairs in Waiting Area, 2 chairs in Reception Area           -->
+    <!-- Size: 0.5 x 0.5 x 0.9 m                                        -->
+    <!-- ============================================================ -->
+
+    <!-- Waiting Area chairs (row of 6) -->
+    <model name="chair_waiting_1">
+      <static>true</static>
+      <pose>-3 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="chair_waiting_2">
+      <static>true</static>
+      <pose>-2 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="chair_waiting_3">
+      <static>true</static>
+      <pose>-1 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="chair_waiting_4">
+      <static>true</static>
+      <pose>0 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="chair_waiting_5">
+      <static>true</static>
+      <pose>1 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="chair_waiting_6">
+      <static>true</static>
+      <pose>1.7 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Reception Area chairs (2) -->
+    <model name="chair_reception_1">
+      <static>true</static>
+      <pose>-8 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="chair_reception_2">
+      <static>true</static>
+      <pose>-6 7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.9</size></box></geometry>
+          <material>
+            <ambient>0.55 0.35 0.2 1</ambient>
+            <diffuse>0.55 0.35 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================================================ -->
+    <!-- OBSTACLES: TABLES (2 total)                                    -->
+    <!-- One in Waiting Area, one in Reception Area                     -->
+    <!-- Size: 1.2 x 0.8 x 0.75 m                                       -->
+    <!-- ============================================================ -->
+
+    <model name="table_waiting_area">
+      <static>true</static>
+      <pose>-1 5 0.375 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.2 0.8 0.75</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.8 0.75</size></box></geometry>
+          <material>
+            <ambient>0.45 0.3 0.15 1</ambient>
+            <diffuse>0.45 0.3 0.15 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="table_reception_area">
+      <static>true</static>
+      <pose>-7 5 0.375 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.2 0.8 0.75</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.8 0.75</size></box></geometry>
+          <material>
+            <ambient>0.45 0.3 0.15 1</ambient>
+            <diffuse>0.45 0.3 0.15 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================================================ -->
+    <!-- OBSTACLE: NURSE DESK (1 total)                                 -->
+    <!-- Located in the Nurse Station                                  -->
+    <!-- Size: 2.0 x 0.8 x 1.0 m                                        -->
+    <!-- ============================================================ -->
+
+    <model name="nurse_station_desk">
+      <static>true</static>
+      <pose>6 6.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.0 0.8 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 0.8 1.0</size></box></geometry>
+          <material>
+            <ambient>0.35 0.2 0.1 1</ambient>
+            <diffuse>0.35 0.2 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    <!-- ============================================================ -->
+    <!-- OBSTACLES: MEDICAL CARTS (2 total)                             -->
+    <!-- One in ICU Room, one in Patient Room 2                         -->
+    <!-- Size: 0.6 x 0.6 x 0.9 m                                        -->
+    <!-- ============================================================ -->
+
+    <model name="medical_cart_icu">
+      <static>true</static>
+      <pose>-9 -1.7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.6 0.6 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.6 0.6 0.9</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.6 1</ambient>
+            <diffuse>0.2 0.4 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="medical_cart_patient_room2">
+      <static>true</static>
+      <pose>8.5 -1.7 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.6 0.6 0.9</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.6 0.6 0.9</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.6 1</ambient>
+            <diffuse>0.2 0.4 0.6 1</diffuse>
+          </material>
+        </visual>
       </link>
     </model>
 
