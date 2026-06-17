@@ -77,8 +77,7 @@ def generate_launch_description():
             '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
             '/camera/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
-            '/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
-        ]
+            '/model/hospital_robot/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'            ]
     )
 
     return LaunchDescription([
