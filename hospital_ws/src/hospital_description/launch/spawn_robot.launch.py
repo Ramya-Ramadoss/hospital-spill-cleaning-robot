@@ -68,16 +68,20 @@ def generate_launch_description():
         ]
     )
 
+    bridge_config = os.path.join(
+        pkg_share,
+        'config',
+        'bridge.yaml'
+    )
+
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
+        name='ros_gz_bridge',
         output='screen',
-        arguments=[
-            '/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
-            '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
-            '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
-            '/camera/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
-            '/model/hospital_robot/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'            ]
+        parameters=[{
+            'config_file': bridge_config
+        }]
     )
 
     return LaunchDescription([
